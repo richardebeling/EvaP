@@ -130,11 +130,11 @@ class ProfileForm(forms.ModelForm):
             logger.info(
                 'User "%s" updated chosen first name to: "%s".', self.instance.email, self.instance.first_name_chosen
             )
-            evaluations = Evaluation.objects.filter(
-                contributions__contributor=self.instance, state__in=STATES_WITH_RESULTS_CACHING
-            ).distinct()
-            for evaluation in evaluations:
-                cache_results(evaluation)
+            cache_results(
+                Evaluation.objects.filter(
+                    contributions__contributor=self.instance, state__in=STATES_WITH_RESULTS_CACHING
+                ).distinct()
+            )
 
         logger.info('User "%s" edited the settings.', self.instance.email)
 

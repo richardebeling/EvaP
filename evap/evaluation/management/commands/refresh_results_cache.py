@@ -23,11 +23,7 @@ class Command(BaseCommand):
         evaluations = Evaluation.objects.filter(state__in=STATES_WITH_RESULTS_CACHING).prefetch_related(
             *GET_RESULTS_PREFETCH_LOOKUPS,
         )
-        progress_bar = ProgressBar(self.stdout, evaluations.count())
-
-        for counter, evaluation in enumerate(evaluations):
-            progress_bar.update(counter + 1)
-            cache_results(evaluation, refetch_related_objects=False)
+        cache_results(evaluations, refetch_related_objects=False)
 
         self.stdout.write("Prerendering result index page...\n")
         update_template_cache(Evaluation.objects.filter(state__in=STATES_WITH_RESULT_TEMPLATE_CACHING))
