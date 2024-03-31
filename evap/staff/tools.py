@@ -317,11 +317,11 @@ def merge_users(main_user, other_user, preview=False):
     LogEntry.objects.filter(user=other_user).update(user=main_user)
 
     # refresh results cache
-    evaluations = Evaluation.objects.filter(
-        contributions__contributor=main_user, state__in=STATES_WITH_RESULTS_CACHING
-    ).distinct()
-    for evaluation in evaluations:
-        cache_results(evaluation)
+    cache_results(
+        Evaluation.objects.filter(
+            contributions__contributor=main_user, state__in=STATES_WITH_RESULTS_CACHING
+        ).distinct()
+    )
 
     # delete other_user
     other_user.delete()

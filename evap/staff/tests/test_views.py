@@ -1441,7 +1441,7 @@ class TestEvaluationOperationView(WebTestStaffMode):
             voters=[participant1, participant2],
         )
         baker.make(Contribution, contributor=contributor1, evaluation=evaluation)
-        cache_results(evaluation)
+        cache_results([evaluation])
 
         self.helper_publish_evaluation_with_publish_notifications_for(
             evaluation, contributors=False, participants=False
@@ -1491,7 +1491,7 @@ class TestEvaluationOperationView(WebTestStaffMode):
             participants=[participant1, participant2],
             voters=[participant1, participant2],
         )
-        cache_results(evaluation)
+        cache_results([evaluation])
 
         self.helper_semester_state_views(evaluation, Evaluation.State.REVIEWED, Evaluation.State.PUBLISHED)
         self.assertEqual(len(mail.outbox), 3)

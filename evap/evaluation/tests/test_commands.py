@@ -172,7 +172,8 @@ class TestRefreshResultsCacheCommand(TestCase):
         with patch("evap.evaluation.management.commands.refresh_results_cache.cache_results") as mock:
             management.call_command("refresh_results_cache", stdout=StringIO())
 
-        self.assertEqual(mock.call_count, Evaluation.objects.count())
+        self.assertEqual(mock.call_count, 1)
+        self.assertEqual(len(mock.call_args[0]), Evaluation.objects.count())
 
 
 class TestScssCommand(TestCase):

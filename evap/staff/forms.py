@@ -1041,11 +1041,11 @@ class UserForm(forms.ModelForm):
             attribute in self.changed_data
             for attribute in ["first_name_given", "first_name_chosen", "last_name", "title"]
         ):
-            evaluations = Evaluation.objects.filter(
-                contributions__contributor=self.instance, state__in=STATES_WITH_RESULTS_CACHING
-            ).distinct()
-            for evaluation in evaluations:
-                cache_results(evaluation)
+            cache_results(
+                Evaluation.objects.filter(
+                    contributions__contributor=self.instance, state__in=STATES_WITH_RESULTS_CACHING
+                ).distinct()
+            )
 
         self.instance.save()
         return self.instance

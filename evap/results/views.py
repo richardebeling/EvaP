@@ -1,4 +1,5 @@
 from collections import defaultdict
+from collections.abc import Iterable
 from statistics import median
 
 from django.conf import settings
@@ -58,7 +59,7 @@ def _delete_course_template_cache_impl(course):
     caches["results"].delete(get_course_result_template_fragment_cache_key(course.id, "de"))
 
 
-def update_template_cache(evaluations):
+def update_template_cache(evaluations: Iterable[Evaluation]) -> None:
     assert all(evaluation.state in STATES_WITH_RESULT_TEMPLATE_CACHING for evaluation in evaluations)
     evaluations = get_evaluations_with_course_result_attributes(get_evaluations_with_prefetched_data(evaluations))
 
@@ -69,29 +70,30 @@ def update_template_cache(evaluations):
     results_index_course_template = get_template("results_index_course_impl.html", using="CachedEngine")
     results_index_evaluation_template = get_template("results_index_evaluation_impl.html", using="CachedEngine")
 
+    cache_data = {}
+
     try:
         for lang in ["en", "de"]:
             translation.activate(lang)
 
             for course, course_evaluations in courses_and_evaluations.items():
                 if len(course_evaluations) > 1:
-                    caches["results"].set(
-                        get_course_result_template_fragment_cache_key(course.id, lang),
-                        results_index_course_template.render({"course": course, "evaluations": course_evaluations}),
-                    )
+                    cache_data[
+                        get_course_result_template_fragment_cache_key(course.id, lang)
+                    ] = results_index_course_template.render({"course": course, "evaluations": course_evaluations})
 
                 for evaluation in course_evaluations:
                     assert evaluation.state in STATES_WITH_RESULT_TEMPLATE_CACHING
                     base_args = {"evaluation": evaluation, "is_subentry": len(course_evaluations) > 1}
 
-                    caches["results"].set(
-                        get_evaluation_result_template_fragment_cache_key(evaluation.id, lang, True),
-                        results_index_evaluation_template.render({**base_args, "links_to_results_page": True}),
-                    )
-                    caches["results"].set(
-                        get_evaluation_result_template_fragment_cache_key(evaluation.id, lang, False),
-                        results_index_evaluation_template.render({**base_args, "links_to_results_page": False}),
-                    )
+                    cache_data[
+                        get_evaluation_result_template_fragment_cache_key(evaluation.id, lang, True)
+                    ] = results_index_evaluation_template.render({**base_args, "links_to_results_page": True})
+                    cache_data[
+                        get_evaluation_result_template_fragment_cache_key(evaluation.id, lang, False)
+                    ] = results_index_evaluation_template.render({**base_args, "links_to_results_page": False})
+
+        caches["results"].set_many(cache_data)
 
     finally:
         translation.activate(current_language)  # reset to previously set language to prevent unwanted side effects

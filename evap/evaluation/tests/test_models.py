@@ -734,14 +734,14 @@ class ParticipationArchivingTests(TestCase):
         self.assertTrue(self.evaluation.participations_are_archived)
 
     def test_archiving_participations_does_not_change_results(self):
-        cache_results(self.evaluation)
+        cache_results([self.evaluation])
         distribution = calculate_average_distribution(self.evaluation)
 
         self.semester.archive()
         self.refresh_evaluation()
         caches["results"].clear()
 
-        cache_results(self.evaluation)
+        cache_results([self.evaluation])
         new_distribution = calculate_average_distribution(self.evaluation)
         self.assertEqual(new_distribution, distribution)
 

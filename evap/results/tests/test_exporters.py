@@ -70,7 +70,7 @@ class TestExporters(TestCase):
         make_rating_answer_counters(question_3, evaluation.general_contribution)
         make_rating_answer_counters(question_4, evaluation.general_contribution)
 
-        cache_results(evaluation)
+        cache_results([evaluation])
 
         binary_content = BytesIO()
         ResultsExporter().export(
@@ -118,7 +118,7 @@ class TestExporters(TestCase):
         )
         make_rating_answer_counters(likert_question, contribution)
 
-        cache_results(evaluation)
+        cache_results([evaluation])
 
         binary_content = BytesIO()
         ResultsExporter().export(
@@ -155,8 +155,7 @@ class TestExporters(TestCase):
             name_en="Evaluation2",
         )
 
-        cache_results(evaluation1)
-        cache_results(evaluation2)
+        cache_results([evaluation1, evaluation2])
 
         content_de = BytesIO()
         with translation.override("de"):
@@ -198,8 +197,7 @@ class TestExporters(TestCase):
             _voter_count=2,
         )
 
-        cache_results(evaluation_1)
-        cache_results(evaluation_2)
+        cache_results([evaluation_1, evaluation_2])
 
         questionnaire = baker.make(Questionnaire)
         question = baker.make(Question, type=QuestionType.POSITIVE_LIKERT, questionnaire=questionnaire)
@@ -276,8 +274,7 @@ class TestExporters(TestCase):
         )
         course_types = [published_evaluation.course.type.id, unpublished_evaluation.course.type.id]
 
-        cache_results(published_evaluation)
-        cache_results(unpublished_evaluation)
+        cache_results([published_evaluation, unpublished_evaluation])
 
         # First, make sure that the unpublished does not appear
         sheet = self.get_export_sheet(
@@ -315,8 +312,7 @@ class TestExporters(TestCase):
             _participant_count=1000,
         )
 
-        cache_results(enough_voters_evaluation)
-        cache_results(not_enough_voters_evaluation)
+        cache_results([enough_voters_evaluation, not_enough_voters_evaluation])
 
         course_types = [enough_voters_evaluation.course.type.id, not_enough_voters_evaluation.course.type.id]
 
@@ -343,7 +339,7 @@ class TestExporters(TestCase):
         evaluation = baker.make(
             Evaluation, is_single_result=True, state=Evaluation.State.PUBLISHED, course__degrees=[degree]
         )
-        cache_results(evaluation)
+        cache_results([evaluation])
         sheet = self.get_export_sheet(evaluation.course.semester, degree, [evaluation.course.type.id])
         self.assertEqual(
             len(sheet.row_values(0)), 1, "There should be no column for the evaluation, only the row description"
@@ -365,7 +361,7 @@ class TestExporters(TestCase):
 
         evaluation.general_contribution.questionnaires.set([used_questionnaire, unused_questionnaire])
         make_rating_answer_counters(used_question, evaluation.general_contribution)
-        cache_results(evaluation)
+        cache_results([evaluation])
 
         sheet = self.get_export_sheet(evaluation.course.semester, degree, [evaluation.course.type.id])
         self.assertEqual(sheet.row_values(4)[0], used_questionnaire.public_name)
@@ -379,7 +375,7 @@ class TestExporters(TestCase):
         evaluation = baker.make(
             Evaluation, course__degrees=[degree], course__type=course_type, state=Evaluation.State.PUBLISHED
         )
-        cache_results(evaluation)
+        cache_results([evaluation])
 
         sheet = self.get_export_sheet(evaluation.course.semester, degree, [course_type.id])
         self.assertEqual(sheet.col_values(1)[1:3], [degree.name, course_type.name])
@@ -393,8 +389,7 @@ class TestExporters(TestCase):
         evaluation2 = baker.make(
             Evaluation, course__semester=semester, course__degrees=[degree], state=Evaluation.State.PUBLISHED
         )
-        cache_results(evaluation1)
-        cache_results(evaluation2)
+        cache_results([evaluation1, evaluation2])
 
         sheet = self.get_export_sheet(semester, degree, [evaluation1.course.type.id, evaluation2.course.type.id])
 
@@ -420,7 +415,7 @@ class TestExporters(TestCase):
         make_rating_answer_counters(question2, evaluation.general_contribution, [0, 1, 0, 1, 0])
 
         evaluation.general_contribution.questionnaires.set([questionnaire1, questionnaire2])
-        cache_results(evaluation)
+        cache_results([evaluation])
 
         sheet = self.get_export_sheet(evaluation.course.semester, degree, [evaluation.course.type.id])
 
@@ -452,8 +447,8 @@ class TestExporters(TestCase):
         for grades, e in zip(grades_per_eval, evaluations):
             make_rating_answer_counters(question, e.general_contribution, grades)
             e.general_contribution.questionnaires.set([questionnaire])
-        for evaluation in evaluations:
-            cache_results(evaluation)
+
+        cache_results(evaluations)
 
         sheet = self.get_export_sheet(course.semester, degree, [course.type.id])
         self.assertEqual(sheet.row_values(12)[1], expected_average)
@@ -475,7 +470,7 @@ class TestExporters(TestCase):
         make_rating_answer_counters(question, evaluation.general_contribution, [4, 2])
 
         evaluation.general_contribution.questionnaires.set([questionnaire])
-        cache_results(evaluation)
+        cache_results([evaluation])
 
         sheet = self.get_export_sheet(evaluation.course.semester, degree, [evaluation.course.type.id])
         self.assertEqual(sheet.row_values(5)[0], question.text)
@@ -519,8 +514,7 @@ class TestExporters(TestCase):
         other_contribution.questionnaires.set([contributor_questionnaire])
         make_rating_answer_counters(contributor_question, other_contribution, [0, 2, 0, 0, 0])
 
-        cache_results(evaluation_1)
-        cache_results(evaluation_2)
+        cache_results([evaluation_1, evaluation_2])
 
         binary_content = export_contributor_results(contributor).content
         workbook = xlrd.open_workbook(file_contents=binary_content)
@@ -565,7 +559,7 @@ class TestExporters(TestCase):
             _quantity=5,
         )
 
-        cache_results(evaluation)
+        cache_results([evaluation])
         evaluation_result = get_results(evaluation)
         filter_text_answers(evaluation_result)
 

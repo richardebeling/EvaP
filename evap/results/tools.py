@@ -181,10 +181,15 @@ def get_results_cache_key(evaluation):
     return f"evap.staff.results.tools.get_results-{evaluation.id:d}"
 
 
-def cache_results(evaluation, *, refetch_related_objects=True):
-    assert evaluation.state in STATES_WITH_RESULTS_CACHING
-    cache_key = get_results_cache_key(evaluation)
-    caches["results"].set(cache_key, _get_results_impl(evaluation, refetch_related_objects=refetch_related_objects))
+def cache_results(evaluations: Iterable[Evaluation], *, refetch_related_objects: bool = True) -> None:
+    results = {}
+
+    for evaluation in evaluations:
+        assert evaluation.state in STATES_WITH_RESULTS_CACHING
+        evaluation._cached_results = _get_results_impl(evaluation, refetch_related_objects=refetch_related_objects)
+        results[get_results_cache_key(evaluation)] = evaluation._cached_results
+
+    caches["results"].set_many(results)
 
 
 def get_results(evaluation):
@@ -208,7 +213,7 @@ GET_RESULTS_PREFETCH_LOOKUPS = [
 ]
 
 
-def _get_results_impl(evaluation: Evaluation, *, refetch_related_objects: bool = True):
+def _get_results_impl(evaluation: Evaluation, *, refetch_related_objects: bool = True) -> EvaluationResult:
     if refetch_related_objects:
         discard_cached_related_objects(evaluation)
 

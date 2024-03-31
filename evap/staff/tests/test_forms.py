@@ -185,7 +185,7 @@ class UserFormTests(TestCase):
         evaluation = baker.make(Evaluation, state=Evaluation.State.PUBLISHED)
         baker.make(Contribution, contributor=contributor, evaluation=evaluation)
 
-        cache_results(evaluation)
+        cache_results([evaluation])
         results_before = get_results(evaluation)
 
         form_data = get_form_data_from_instance(UserForm, contributor)

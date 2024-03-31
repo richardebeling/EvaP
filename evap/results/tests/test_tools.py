@@ -41,7 +41,7 @@ class TestCalculateResults(TestCase):
 
         self.assertIsNone(caches["results"].get(get_results_cache_key(evaluation)))
 
-        cache_results(evaluation)
+        cache_results([evaluation])
 
         self.assertIsNotNone(caches["results"].get(get_results_cache_key(evaluation)))
 
@@ -90,7 +90,7 @@ class TestCalculateResults(TestCase):
 
         make_rating_answer_counters(question, contribution1, [5, 15, 40, 60, 30])
 
-        cache_results(evaluation)
+        cache_results([evaluation])
         evaluation_results = get_results(evaluation)
 
         self.assertEqual(len(evaluation_results.questionnaire_results), 1)
@@ -120,7 +120,7 @@ class TestCalculateResults(TestCase):
 
         make_rating_answer_counters(question, contribution1, [5, 5, 15, 30, 25, 15, 10])
 
-        cache_results(evaluation)
+        cache_results([evaluation])
         evaluation_results = get_results(evaluation)
 
         self.assertEqual(len(evaluation_results.questionnaire_results), 1)
@@ -152,7 +152,7 @@ class TestCalculateResults(TestCase):
         baker.make(Question, questionnaire=questionnaire, type=QuestionType.GRADE)
         baker.make(Contribution, contributor=contributor, evaluation=evaluation, questionnaires=[questionnaire])
 
-        cache_results(evaluation)
+        cache_results([evaluation])
 
         merge_users(main_user, contributor)
 
@@ -229,7 +229,7 @@ class TestCalculateAverageDistribution(TestCase):
         ]
         RatingAnswerCounter.objects.bulk_create(counters)
 
-        cache_results(self.evaluation)
+        cache_results([self.evaluation])
 
         contributor_weights_sum = (
             settings.CONTRIBUTOR_GRADE_QUESTIONS_WEIGHT + settings.CONTRIBUTOR_NON_GRADE_RATING_QUESTIONS_WEIGHT
@@ -277,7 +277,7 @@ class TestCalculateAverageDistribution(TestCase):
         ]
         RatingAnswerCounter.objects.bulk_create(counters)
 
-        cache_results(self.evaluation)
+        cache_results([self.evaluation])
 
         # contribution1: 0.4 * (0.5, 0, 0.5, 0, 0) + 0.6 * (0, 0, 0.5, 0, 0.5) = (0.2, 0, 0.5, 0, 0.3)
         # contribution2: (0, 0.5, 0, 0.5, 0)
@@ -312,7 +312,7 @@ class TestCalculateAverageDistribution(TestCase):
         ]
         RatingAnswerCounter.objects.bulk_create(counters)
 
-        cache_results(self.evaluation)
+        cache_results([self.evaluation])
 
         # contributions and general_non_grade are as above
         # general_grade: (0, 1, 0, 0, 0)
@@ -339,7 +339,7 @@ class TestCalculateAverageDistribution(TestCase):
         )
         make_rating_answer_counters(questionnaire.questions.first(), contribution, [1, 0, 0, 1, 0])
 
-        cache_results(single_result_evaluation)
+        cache_results([single_result_evaluation])
         distribution = calculate_average_distribution(single_result_evaluation)
         self.assertEqual(distribution, (0.5, 0, 0, 0.5, 0))
         rating_result = get_single_result_rating_result(single_result_evaluation)
@@ -363,7 +363,7 @@ class TestCalculateAverageDistribution(TestCase):
 
         evaluation.general_contribution.questionnaires.set([self.questionnaire])
         make_rating_answer_counters(self.question_grade, evaluation.general_contribution, [1, 0, 0, 0, 0])
-        cache_results(evaluation)
+        cache_results([evaluation])
 
         distribution = calculate_average_distribution(evaluation)
         self.assertEqual(distribution[0], 1)
@@ -426,8 +426,7 @@ class TestCalculateAverageDistribution(TestCase):
             Contribution, evaluation=single_result, contributor=None, questionnaires=[single_result_questionnaire]
         )
         make_rating_answer_counters(single_result_question, contribution, [0, 1, 1, 0, 0])
-        cache_results(single_result)
-        cache_results(self.evaluation)
+        cache_results([single_result, self.evaluation])
 
         distribution = calculate_average_course_distribution(course)
         self.assertEqual(distribution[0], 0.25)

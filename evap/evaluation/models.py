@@ -500,7 +500,7 @@ class Evaluation(LoggedModel):
             ):  # reviewing changes results -> cache update required
                 from evap.results.tools import cache_results
 
-                cache_results(self)
+                cache_results([self])
             elif state_changed_from(self, STATES_WITH_RESULTS_CACHING):
                 from evap.results.tools import get_results_cache_key
 
