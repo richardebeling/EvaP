@@ -16,7 +16,7 @@ from django.core.cache import caches
 from django.core.exceptions import ValidationError
 from django.core.mail import EmailMultiAlternatives
 from django.db import IntegrityError, models, transaction
-from django.db.models import CheckConstraint, Count, F, Manager, OuterRef, Q, Subquery, Value
+from django.db.models import CheckConstraint, Count, F, Manager, OuterRef, Q, Subquery, Value, Exists
 from django.db.models.functions import Coalesce, Lower, NullIf, TruncDate
 from django.dispatch import Signal, receiver
 from django.template import Context, Template
@@ -331,6 +331,17 @@ class Course(LoggedModel):
 
     def __str__(self):
         return self.name
+
+    @classmethod
+    def objects_with_missing_final_grades(cls):
+        # pylint: disable=import-outside-toplevel
+        from evap.grades.models import GradeDocument
+
+        return Course.objects.filter(
+            evaluations__state__gte=Evaluation.State.EVALUATED,
+            evaluations__wait_for_grade_upload_before_publishing=True,
+            gets_no_grade_documents=False,
+        ).filter(~Exists(GradeDocument.objects.filter(course=OuterRef("pk"), type=GradeDocument.Type.FINAL_GRADES)))
 
     @property
     def unlogged_fields(self):
@@ -1975,6 +1986,7 @@ class EmailTemplate(models.Model):
     EVALUATION_STARTED = "Evaluation Started"
     DIRECT_DELEGATION = "Direct Delegation"
     TEXT_ANSWER_REVIEW_REMINDER = "Text Answer Review Reminder"
+    GRADE_REMINDER = "Grade Reminder"
 
     class Recipients(models.TextChoices):
         ALL_PARTICIPANTS = "all_participants", _("all participants")

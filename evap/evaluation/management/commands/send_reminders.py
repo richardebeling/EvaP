@@ -1,13 +1,15 @@
 import datetime
 import logging
 
+from django.db.models import Exists, OuterRef, Prefetch
 from django.conf import settings
 from django.contrib.auth.models import Group
 from django.core.management.base import BaseCommand
 from django.urls import reverse
 
 from evap.evaluation.management.commands.tools import log_exceptions
-from evap.evaluation.models import EmailTemplate, Evaluation
+from evap.evaluation.models import EmailTemplate, Evaluation, Course, Semester
+from evap.grades.models import GradeDocument
 
 logger = logging.getLogger(__name__)
 
@@ -39,6 +41,7 @@ class Command(BaseCommand):
         logger.info("send_reminders called.")
         self.send_student_reminders()
         self.send_textanswer_reminders()
+        self.send_grade_reminders()
         logger.info("send_reminders finished.")
 
     @staticmethod
@@ -78,3 +81,35 @@ class Command(BaseCommand):
                 EmailTemplate.send_textanswer_reminder_to_user(manager, evaluation_url_tuples)
 
             logger.info("sent text answer review reminders.")
+
+    @staticmethod
+    def send_grade_reminders():
+        # TODO: Tests for the command
+        def should_remind_today():
+            normalized_reminder_dates = {datetime.date(1000, d.month, d.day) for d in settings.GRADE_REMINDER_EMAIL_DATES}
+            today = datetime.date.today()
+            normalized_today = datetime.date(1000, today.month, today.day)
+
+            return True  # TODO: For testing
+            return normalized_today in normalized_reminder_dates
+
+        if not should_remind_today():
+            return
+
+        courses_without_final_grades = Course.objects_with_missing_final_grades()
+        semesters = (
+            Semester.objects
+            .filter(grade_documents_are_deleted=False)
+            .filter(Exists(courses_without_final_grades.filter(semester__pk=OuterRef("pk"))))
+            .prefetch_related(
+                Prefetch(
+                    "courses", queryset=courses_without_final_grades, to_attr="courses_without_final_grades"
+                ),
+            )
+        )
+
+        for semester in semesters:
+            # TODO: Implementation missing
+            EmailTemplate.send_grade_reminder_to_users(manager, semester, semester.courses_without_grade_documents)
+
+        logger.info("sent grade document reminders for %d semesters to %d people.", len(semesters), len(recipients))
