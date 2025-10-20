@@ -104,25 +104,33 @@ class GlobalRewards:
 
 @participant_required
 def index(request):
+    # postgres weirdness because of acid guarantees? Are we actually waiting for the file system?
     query = (
-        Evaluation.objects.annotate(
-            participates_in=Exists(Evaluation.objects.filter(id=OuterRef("id"), participants=request.user))
-        )
-        .annotate(voted_for=Exists(Evaluation.objects.filter(id=OuterRef("id"), voters=request.user)))
-        .filter(~Q(state=Evaluation.State.NEW), course__evaluations__participants=request.user)
+        Evaluation.objects
+        # .annotate(participates_in=Exists(Evaluation.objects.filter(id=OuterRef("id"), participants=request.user)))
+        # .annotate(voted_for=Exists(Evaluation.objects.filter(id=OuterRef("id"), voters=request.user)))
         .exclude(state=Evaluation.State.NEW)
-        .prefetch_related(
-            "course",
-            "course__semester",
-            "course__grade_documents",
-            "course__type",
-            "course__evaluations",
-            "course__responsibles",
-            "course__programs",
-        )
+        # .filter(Exists(Evaluation.objects.filter(voters=request.user, course_id=OuterRef("course_id"))))
+        .filter(course__evaluations__participants=request.user)
+        # .prefetch_related(
+        #     "course",
+        #     "course__semester",
+        #     "course__grade_documents",
+        #     "course__type",
+        #     "course__evaluations",
+        #     "course__responsibles",
+        #     "course__programs",
+        # )
         .distinct()
     )
-    query = Evaluation.annotate_with_participant_and_voter_counts(query)
+    import time
+    # query = Evaluation.annotate_with_participant_and_voter_counts(query)
+    a = time.time()
+    xyz = list(query)
+    print(time.time() - a)
+
+    return HttpResponse()
+
     evaluations = [evaluation for evaluation in query if evaluation.can_be_seen_by(request.user)]
 
     inner_evaluation_ids = [

@@ -48,11 +48,13 @@ class TestStudentIndexView(WebTestWith200Check):
                 Evaluation,
                 course__semester=semester,
                 state=Evaluation.State.PUBLISHED,
-                _quantity=100,
+                _quantity=5000,
                 _bulk_create=True,
             )
             participations = [Evaluation.participants.through(evaluation=e, userprofile=self.user) for e in evaluations]
             Evaluation.participants.through.objects.bulk_create(participations)
+
+        print("Data creation done")
 
         with self.assertNumQueries(FuzzyInt(0, 100)):
             self.app.get(self.url, user=self.user)
