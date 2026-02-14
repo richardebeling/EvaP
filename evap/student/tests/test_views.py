@@ -117,6 +117,9 @@ class TestStudentIndexView(WebTestWith200Check):
         self.assertIn("a dog", page)
         self.assertIn("50%", page)
 
+    def test_noop(self):
+        self.assertTrue(True)
+
     @override_settings(GLOBAL_EVALUATION_PROGRESS_REWARDS=[(Fraction("0.07"), {"de": "a dog", "en": "a dog"})])
     def test_global_evaluation_progress_edge_cases(self):
         # no active semester
