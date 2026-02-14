@@ -43,7 +43,11 @@ from evap.evaluation.models import (
 class EvapTestRunner(DiscoverRunner):
     """Skips selenium tests by default, if no other tags are specified."""
 
-    def __init__(self, *args: Any, headed=False, **kwargs: Any) -> None:
+    def __init__(self, *args: Any, headed=False, no_keepdb=False, **kwargs: Any) -> None:
+        if not no_keepdb:
+            kwargs["keepdb"] = True  # --keepdb
+            kwargs["interactive"] = False  # --noinput
+
         super().__init__(*args, **kwargs)
 
         self.__headed = headed
@@ -58,6 +62,12 @@ class EvapTestRunner(DiscoverRunner):
         parser.add_argument(
             "--headed",
             help="Run the tests in non-headless mode, which makes the browser window visible. Useful for debugging.",
+            action="store_true",
+        )
+
+        parser.add_argument(
+            "--no-keepdb",
+            help="Do not automatically pass --keepdb and --noinput",
             action="store_true",
         )
 
