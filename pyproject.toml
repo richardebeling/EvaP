@@ -39,6 +39,7 @@ dev = [
     "xlrd~=2.0.1",
     "typeguard~=4.5.1",
     "selenium~=4.41.0",
+    "monkeytype==23.3.0",
 ]
 lsp = [
     "python-lsp-server",
