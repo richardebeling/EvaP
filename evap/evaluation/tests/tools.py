@@ -1,4 +1,5 @@
 import random
+import threading
 import time
 from collections.abc import Iterator, Sequence
 from contextlib import contextmanager
@@ -17,7 +18,7 @@ from django.db import DEFAULT_DB_ALIAS, connections
 from django.http.request import HttpRequest, QueryDict
 from django.test import override_settings
 from django.test.runner import DiscoverRunner
-from django.test.selenium import SeleniumTestCase
+from django.test.selenium import SeleniumTestCase, SeleniumTestCaseBase
 from django.test.utils import CaptureQueriesContext
 from django.urls import reverse
 from django.utils import timezone, translation
@@ -44,6 +45,12 @@ from evap.evaluation.models import (
 
 class EvapTestRunner(DiscoverRunner):
     """Skips selenium tests by default, if no other tags are specified."""
+
+    # By default, SeleniumTestCase will spawn a new browser process for each test class. To reduce per-class overhead,
+    # we re-use WebDriver instances and thus browser processes. thread_local.webdriver be filled by the first
+    # LiveServerTest using it and closed by the test runner.
+    thread_local = threading.local()
+    thread_local.webdriver = None
 
     def __init__(self, *args: Any, headed: bool, baker_seed: int, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
@@ -79,6 +86,12 @@ class EvapTestRunner(DiscoverRunner):
 
         self.log(f"Using baker seed: {self.__baker_seed}")
         SeedBakerMixin.BAKER_SEED = self.__baker_seed
+
+    def teardown_databases(self, *args, **kwargs):
+        if self.thread_local.webdriver is not None:
+            self.thread_local.webdriver.quit()
+
+        return super().teardown_databases(*args, **kwargs)
 
 
 class ResetLanguageOnTearDownMixin:
@@ -342,8 +355,24 @@ class LiveServerTest(SeedBakerMixin, SeleniumTestCase):
     headless = True
     implicit_wait = 0
     window_size = (1920, 4096)  # large height to workaround scrolling
-    serialized_rollback = True  # SeleniumTestCase is a TransactionTestCase, which drops migration data. This keeps fixture data but may slow down tests, see https://docs.djangoproject.com/en/5.0/topics/testing/overview/#test-case-serialized-rollback
+
+    # SeleniumTestCase is a TransactionTestCase, which drops migration data. This keeps fixture data but may slow down
+    # tests, see https://docs.djangoproject.com/en/5.0/topics/testing/overview/#test-case-serialized-rollback
+    serialized_rollback = True
+
     static_handler = StaticFilesHandler  # see StaticLiveServerTestCase
+
+    @classmethod
+    def create_webdriver(cls) -> WebDriver:
+        if EvapTestRunner.thread_local.webdriver is None:
+            assert isinstance(cls, SeleniumTestCaseBase)
+            EvapTestRunner.thread_local.webdriver = SeleniumTestCaseBase.create_webdriver(cls)
+        return EvapTestRunner.thread_local.webdriver
+
+    @classmethod
+    def _quit_selenium(cls):
+        # Cleanup in EvapTestRunner, after all test classes have run, in teardown_databases
+        pass
 
     def setUp(self) -> None:
         super().setUp()
